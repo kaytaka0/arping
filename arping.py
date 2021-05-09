@@ -1,6 +1,18 @@
 import socket
 import struct
+import sys
+from time import sleep
 from uuid import getnode as get_mac
+import fcntl
+import ipaddress
+
+def getHwAddr(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
+    return ':'.join('%02x' % b for b in info[18:24])
+
+
+
 
 def make_ether(d_mac, s_mac):
     ether_frame = [
@@ -13,14 +25,15 @@ def make_ether(d_mac, s_mac):
 
 def main():
     # ip, source_mac を添付してARPパケットをブロードキャスト
-    ETH_P_ALL = 3
-    soc = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
-    soc.bind(("enp0s4", 0))
 
-    #local_mac = [int((f"{get_mac()}"[i:i+2]), 16) for i in range(0, 12, 2)]
-    local_mac = [int("ee:e2:1d:9c:b1:cb"[i:i+2], 16) for i in range(0, 17, 3)]
+    ETH_P_ALL = 3
+    ifname = "enp0s4"
+    soc = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
+    soc.bind((ifname, 0))
+
+    local_mac = [int(x, 16) for x in getHwAddr(ifname).split(":")]
     local_ip = [int(x) for x in socket.gethostbyname(socket.gethostname()).split(".")]
-    dest_ip = [10, 0, 2, 3]
+    dest_ip = map(int, sys.argv[1].split('.'))
     dest_mac = [0, 0, 0, 0, 0, 0]
 
     ARP_FRAME = [
@@ -36,15 +49,20 @@ def main():
     ]
     payload = make_ether(dest_mac, local_mac) + b''.join(ARP_FRAME)
     print("ARP sent....")
-    print(payload)
-    print("=" * 50)
 
     soc.send(payload)
-    d = soc.recv(4086)
-    print(d)
-    dest_mac =  d[:6].hex()
-    result = ":".join([ dest_mac[i:i+2] for i in range(0, 12, 2)])
-    print(result)
+
+    while True:
+        d = soc.recv(4086)
+
+        dest = list(map(int, struct.unpack("!6B", d[:6])))
+        src = list(map(int, struct.unpack("!6B", d[6:12])))
+        protocol_type = struct.unpack("!H", d[12:14])[0]
+        if(protocol_type == 0x0806 and dest == local_mac):
+            print(":".join(["%02x" % x for x in src]))
+            break
+        sleep(1)
+    
     soc.close()
 
 
