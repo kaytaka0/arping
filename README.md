@@ -52,3 +52,4 @@ b'\xee\xe2\x1d\x9c\xb1\xcbRU\n\x00\x02\x03\x08\x06\x00\x01\x08\x00\x06\x04\x00\x
 
 - マスタリングTCP/IP 入門編　第5版
 - [PythonでARPを使ったネットワークプログラミング　ARPスプーフィングを試す](https://euniclus.com/article/python-arp-spoofing/)
+- [RFC826 日本語訳](http://srgia.com/docs/rfc826j.html)

@@ -5,13 +5,18 @@ from time import sleep
 from uuid import getnode as get_mac
 import fcntl
 import ipaddress
+import netifaces as ni
 
 def getHwAddr(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
     return ':'.join('%02x' % b for b in info[18:24])
 
-
+def guess_nw_if():
+    exclude_ifname = ['docker0', 'lo']
+    ifs = ni.interfaces()
+    ifs = [ifname for ifname in ifs if ifname not in exclude_ifname]
+    return ifs[0]
 
 
 def make_ether(d_mac, s_mac):
@@ -25,9 +30,9 @@ def make_ether(d_mac, s_mac):
 
 def main():
     # ip, source_mac を添付してARPパケットをブロードキャスト
-
+    
     ETH_P_ALL = 3
-    ifname = "enp0s4"
+    ifname = guess_nw_if()
     soc = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
     soc.bind((ifname, 0))
 
@@ -48,7 +53,7 @@ def main():
         struct.pack('!4B', *dest_ip), # TPA
     ]
     payload = make_ether(dest_mac, local_mac) + b''.join(ARP_FRAME)
-    print("ARP sent....")
+    print(f"[DEV] ARPING {sys.argv[1]} {ifname}")
 
     soc.send(payload)
 
