@@ -1,9 +1,7 @@
 import socket
 import struct
 from time import sleep
-from uuid import getnode as get_mac
 import fcntl
-import ipaddress
 import argparse
 import netifaces as ni
 from typing import List
@@ -89,7 +87,7 @@ def main():
 
     # ## ソケットの作成 ###
     ETH_P_ALL = 3
-    ifname = args.interface if args.interface is not None else guess_nw_if()
+    ifname = args.interface if args.interface else guess_nw_if()
     soc = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
     soc.bind((ifname, 0))
 
