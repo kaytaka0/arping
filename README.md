@@ -4,10 +4,9 @@ pythonによるArpingの実装をおこなう。
 
 ## 実行方法
 ```bash
-$ python arping.py [IP Address]
-
+$ sudo python3 arping.py [-h] [--interface INTERFACE] tagrgetip
 // 例
-$ python arping.py 192.0.0.23
+$ sudo python3 arping.py 192.0.1.12
 ```
 
 ## ARPとは
@@ -49,7 +48,7 @@ b'\xee\xe2\x1d\x9c\xb1\xcbRU\n\x00\x02\x03\x08\x06\x00\x01\x08\x00\x06\x04\x00\x
 ```
 
 - IPパケットやARPパケットが受信されたため、受信データの宛先MACアドレスと、プロトコルタイプの確認が必要
-- Linuxの`arping`コマンドはインタフェース名を入力しなくても実行できるが、これはインタフェースを推測しているようだった。推測できない場合にエラーメッセージを出力するようにする。
+- Linuxの`arping`コマンドはインタフェース名を入力しなくても実行できるが、これはインタフェースを推測しているようだった。今回作成したコマンドでも推測できない場合にエラーメッセージを出力するようにした。
 
 ## 参考
 

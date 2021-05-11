@@ -33,7 +33,12 @@ def guess_nw_if() -> str:
     exclude_ifname = ['docker0', 'lo']
     ifs = ni.interfaces()
     ifs = [ifname for ifname in ifs if ifname not in exclude_ifname]
-    return ifs[0]
+    ifs = []
+    try:
+        return ifs[0]
+    except IndexError:
+        print('[Error] Cannot guess network interface. Try to specify [--interface]')
+        exit(1)
 
 
 def make_ether(d_mac: List[int], s_mac: List[int]) -> bytes:
