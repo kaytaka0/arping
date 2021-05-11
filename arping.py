@@ -1,10 +1,10 @@
 import socket
 import struct
-import sys
 from time import sleep
 from uuid import getnode as get_mac
 import fcntl
 import ipaddress
+import argparse
 import netifaces as ni
 from typing import List
 
@@ -77,16 +77,22 @@ def unpack_arp_packet(payload: bytes, local_mac: List[int]) -> List[int]:
 
 
 def main():
+    # コマンドライン引数の解析
+    parser = argparse.ArgumentParser(description='Arping: send ARP request')
+    parser.add_argument('ip', help='IP address to resolve')
+    parser.add_argument('--interface', help='target interface name')
+    args = parser.parse_args()
+
     # ## ソケットの作成 ###
     ETH_P_ALL = 3
-    ifname = guess_nw_if()
+    ifname = args.interface if args.interface is not None else guess_nw_if()
     soc = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(ETH_P_ALL))
     soc.bind((ifname, 0))
 
     # 宛先、送信元のIP, MACアドレス
-    local_mac: List[int] = [int(x, 16) for x in get_hw_addr(ifname).split(":")]
-    local_ip: List[int]  = [int(x) for x in socket.gethostbyname(socket.gethostname()).split(".")]
-    dest_ip: List[int]   = [int(x) for x in sys.argv[1].split('.')]
+    local_mac: List[int] = [int(x, 16) for x in get_hw_addr(ifname).split(':')]
+    local_ip: List[int]  = [int(x) for x in socket.gethostbyname(socket.gethostname()).split('.')]
+    dest_ip: List[int]   = [int(x) for x in args.ip.split('.')]
     dest_mac: List[int]  = [0, 0, 0, 0, 0, 0] # 送信先のMACアドレスはわからないため、ダミーのアドレスを入れる
 
     # ARPパケットの作成
@@ -109,8 +115,8 @@ def main():
 
     while True:
         # ARPレスポンスの受信処理
+        print(f"[LOG] ARPING {args.ip} {ifname}")
         d = soc.recv(4086)
-        print(f"[DEV] ARPING {sys.argv[1]} {ifname}")
 
         target_mac = unpack_arp_packet(d, local_mac)
         if target_mac is not None:
