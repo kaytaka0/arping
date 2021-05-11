@@ -33,7 +33,6 @@ def guess_nw_if() -> str:
     exclude_ifname = ['docker0', 'lo']
     ifs = ni.interfaces()
     ifs = [ifname for ifname in ifs if ifname not in exclude_ifname]
-    ifs = []
     try:
         return ifs[0]
     except IndexError:
