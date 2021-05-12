@@ -1,10 +1,10 @@
 import socket
 import struct
 from time import sleep
-import fcntl
 import argparse
 import netifaces as ni
 from typing import List
+import termios
 
 
 def get_hw_addr(ifname: str) -> str:
@@ -15,9 +15,7 @@ def get_hw_addr(ifname: str) -> str:
     Returns:
         str: MACアドレス("xx:xx:xx:xx"のような形式)
     """
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', bytes(ifname, 'utf-8')[:15]))
-    return ':'.join('%02x' % b for b in info[18:24])
+    return ni.ifaddresses(ifname)[ni.AF_LINK][0]['addr']
 
 
 def guess_nw_if() -> str:
@@ -60,19 +58,21 @@ def unpack_arp_packet(payload: bytes, local_mac: List[int]) -> List[int]:
     Returns:
         List[int] | False: レスポンス送信元のMACアドレス, またはNone
     """
-    
+    # Ethernetヘッダの解析
     d_mac = [int(x) for x in struct.unpack('!6B', payload[:6])]
     s_mac = [int(x) for x in struct.unpack('!6B', payload[6:12])]
     protocol_type = int(struct.unpack('!H', payload[12:14])[0])
 
-    if(d_mac == local_mac and protocol_type == 0x0806):
-        struct.unpack('!H', payload[14:16]) # HRD
-        struct.unpack('!H', payload[16:18]) # PRO
-        struct.unpack('!H', payload[20:22]) # OP
+    # ARPプロトコルの場合のみパケットの解析を行う
+    PROTOCOL_ARP = 0x0806
+    if(d_mac == local_mac and protocol_type == PROTOCOL_ARP):
+        hrd = struct.unpack('!H', payload[14:16]) # HRD
+        pro = struct.unpack('!H', payload[16:18]) # PRO
+        op = struct.unpack('!H', payload[20:22]) # OP
         a_src_mac = struct.unpack('!6B', payload[22:28]) # SHA
-        struct.unpack('!4B', payload[28:32]) # SPA
-        struct.unpack('!6B', payload[32:38]) # THA
-        struct.unpack('!4B', payload[38:42]) # TPA
+        a_src_ip = struct.unpack('!4B', payload[28:32]) # SPA
+        a_dest_mac = struct.unpack('!6B', payload[32:38]) # THA
+        a_dest_ip = struct.unpack('!4B', payload[38:42]) # TPA
         return a_src_mac
     else:
         return None
@@ -130,6 +130,7 @@ def main():
 
         sleep(1)
     
+    # socketを閉じて通信を終了する
     soc.close()
 
 
