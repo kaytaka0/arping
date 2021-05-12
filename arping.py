@@ -45,7 +45,7 @@ def make_ether(d_mac: List[int], s_mac: List[int]) -> bytes:
     ether_frame = [
         struct.pack('!6B', *d_mac), # 宛先MACアドレス
         struct.pack('!6B', *s_mac), # 送信元MACアドレス
-        struct.pack('!H', 0x0806), # ARP
+        struct.pack('!H', 0x0806), # プロトコルタイプをARP=0x0806に設定
     ]
     return b''.join(ether_frame)
 
@@ -99,15 +99,15 @@ def main():
 
     # ARPパケットの作成
     ARP_FRAME = [
-        struct.pack('!H', 0x0001), # HRD
-        struct.pack('!H', 0x0800), # PRO
-        struct.pack('!B', 0x06), # HLN
-        struct.pack('!B', 0x04), # PLN
-        struct.pack('!H', 0x0001), # OP
-        struct.pack('!6B', *local_mac), # SHA
-        struct.pack('!4B', *local_ip), # SPA
-        struct.pack('!6B', *(0x00,)*6), # THA
-        struct.pack('!4B', *dest_ip), # TPA
+        struct.pack('!H', 0x0001), # HRD ハードウェアタイプをEthernet=0x1に設定
+        struct.pack('!H', 0x0800), # PRO 解決中のプロトコルタイプを
+        struct.pack('!B', 0x06), # HLN 各ハードウェアアドレス(MACアドレス)のバイト長
+        struct.pack('!B', 0x04), # PLN 各プロトコルアドレス(IPアドレス)のバイト長
+        struct.pack('!H', 0x0001), # OP opcode Requestなので0x1(Replyの場合0x2)
+        struct.pack('!6B', *local_mac), # SHA 送信元MACアドレス
+        struct.pack('!4B', *local_ip), # SPA　送信元IPアドレス
+        struct.pack('!6B', *(0x00,)*6), # THA 宛先MACアドレス
+        struct.pack('!4B', *dest_ip), # TPA 宛先IPアドレス
     ]
     # 送信パケット作成
     payload: bytes = make_ether(dest_mac, local_mac) + b''.join(ARP_FRAME)
